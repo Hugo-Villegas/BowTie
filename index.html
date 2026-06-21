@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis Bow-Tie — ENAP</title>
+<style>
+/* ═══════════════════════════════════════════════════════
+   TOKENS SEMÁNTICOS (solo para el diagrama SVG)
+═══════════════════════════════════════════════════════ */
+:root{
+  --haz:#7a3a0e; --hazB:#fff3e8; --hazD:#d4904a;
+  --cau:#3d2474; --cauB:#ede8ff; --cauD:#a898d8;
+  --ev :#7a2020; --evB :#fceaea; --evD :#cc8080;
+  --pre:#145a34; --preB:#e6f5ed; --preD:#5aaa7a;
+  --mit:#6a4408; --mitB:#fdf4e0; --mitD:#c8a040;
+  --con:#14407a; --conB:#e4eff8; --conD:#68a0d0;
+  --ctr:#1a4a1a; --ctrB:#e4f4e4; --ctrD:#58a858;
+}
+
+/* ═══════════════════════════════════════════════════════
+   BASE — estilo CPM
+═══════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;
+  background:#f0f4f8;
+  color:#1a202c;
+  font-size:14px;
+  line-height:1.5;
+}
+
+/* ═══ HEADER — igual que CPM ═══════════════════════════ */
+header{
+  background:#1a56db;
+  color:white;
+  padding:14px 28px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  box-shadow:0 2px 10px rgba(0,0,0,0.25);
+  flex-wrap:wrap;
+  gap:10px;
+}
+header h1{font-size:1.25rem;font-weight:700;letter-spacing:-.3px;}
+header p{font-size:0.76rem;opacity:.8;margin-top:2px;}
+.header-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+
+/* ═══ BOTONES — igual que CPM ══════════════════════════ */
+.btn{
+  padding:7px 16px;
+  border-radius:6px;
+  border:none;
+  cursor:pointer;
+  font-size:0.82rem;
+  font-weight:600;
+  transition:all .15s;
+  font-family:inherit;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+.btn:hover{opacity:.88;transform:translateY(-1px);}
+.btn-white{background:white;color:#1a56db;}
+.btn-ghost{background:transparent;color:white;border:1px solid rgba(255,255,255,.7);}
+.btn-green{background:#059669;color:white;}
+.btn-red  {background:#dc2626;color:white;}
+.btn-blue {background:#1a56db;color:white;border:1px solid rgba(255,255,255,.4);}
+.btn-sm   {padding:5px 12px;font-size:0.78rem;}
+
+#saved-badge{
+  font-size:0.78rem;
+  color:#d1fae5;
+  display:none;
+  align-items:center;
+  gap:4px;
+  font-weight:600;
+}
+#saved-badge.show{display:inline-flex;}
+
+/* ═══ MAIN WRAPPER ══════════════════════════════════════ */
+main{max-width:1400px;margin:0 auto;padding:20px;}
+
+/* ═══ CARD ══════════════════════════════════════════════ */
+.card{
+  background:white;
+  border-radius:10px;
+  padding:18px 22px;
+  margin-bottom:18px;
+  border:1px solid #e5e7eb;
+  box-shadow:0 1px 4px rgba(0,0,0,0.07);
+}
+.card-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:14px;
+  padding-bottom:10px;
+  border-bottom:1px solid #e5e7eb;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.card-title{
+  font-size:0.9rem;
+  font-weight:700;
+  color:#374151;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+}
+.card-sub{font-size:0.75rem;color:#6b7280;margin-top:2px;}
+
+/* ═══ META BAR ══════════════════════════════════════════ */
+.meta-grid{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  align-items:flex-end;
+}
+.fg{display:flex;flex-direction:column;gap:3px;}
+.fl{font-size:0.7rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#6b7280;}
+.fi{
+  background:#f9fafb;
+  border:1px solid #d1d5db;
+  border-radius:6px;
+  padding:5px 10px;
+  font-size:0.82rem;
+  color:#1a202c;
+  font-family:inherit;
+  min-width:100px;
+}
+.fi:focus{outline:none;border-color:#1a56db;box-shadow:0 0 0 2px rgba(26,86,219,.15);}
+
+/* ═══ DIAGRAM WRAPPER ═══════════════════════════════════ */
+.diagram-wrap{overflow-x:auto;margin-bottom:18px;}
+.diagram-card{
+  background:white;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  box-shadow:0 1px 4px rgba(0,0,0,0.07);
+  padding:12px;
+  min-width:960px;
+}
+#bsvg{width:100%;display:block;}
+
+/* ═══ TABS ═══════════════════════════════════════════════ */
+.tabs{
+  display:flex;
+  border-bottom:2px solid #e5e7eb;
+  margin-bottom:0;
+  background:white;
+  border-radius:10px 10px 0 0;
+  border:1px solid #e5e7eb;
+  border-bottom:none;
+  padding:0 8px;
+  overflow-x:auto;
+}
+.tab{
+  padding:10px 18px;
+  font-size:0.82rem;
+  font-weight:600;
+  cursor:pointer;
+  border:none;
+  background:transparent;
+  color:#6b7280;
+  border-bottom:2px solid transparent;
+  margin-bottom:-1px;
+  transition:color .12s,border-color .12s;
+  font-family:inherit;
+  white-space:nowrap;
+}
+.tab:hover{color:#1a202c;}
+.tab.on{color:#1a56db;border-bottom-color:#1a56db;}
+.tab-content{
+  background:white;
+  border:1px solid #e5e7eb;
+  border-top:none;
+  border-radius:0 0 10px 10px;
+  padding:18px 20px;
+  margin-bottom:18px;
+  box-shadow:0 1px 4px rgba(0,0,0,0.07);
+}
+
+/* ═══ PANELS ═════════════════════════════════════════════ */
+.panels{display:grid;gap:14px;}
+.p2{grid-template-columns:1fr 1fr;}
+.p3{grid-template-columns:1fr 1fr 1fr;}
+.panel{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;}
+.ph{padding:10px 14px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;background:white;}
+.ptit{font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#374151;}
+.pb{padding:12px 14px;}
+.hint{
+  font-size:0.76rem;
+  color:#6b7280;
+  line-height:1.55;
+  margin-bottom:10px;
+  padding:8px 10px;
+  background:#eff6ff;
+  border-radius:6px;
+  border-left:3px solid #1a56db;
+}
+
+/* items */
+.ilist{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.irow{
+  padding:7px 10px;
+  border:1px solid #e5e7eb;
+  border-radius:6px;
+  background:white;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  animation:fi .13s ease;
+}
+.irm{display:flex;align-items:center;gap:6px;}
+.irs{display:flex;align-items:center;gap:5px;padding-left:16px;}
+.itag{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.itg-c{background:var(--cau);}
+.itg-p{background:var(--pre);}
+.itg-q{background:var(--con);}
+.itg-m{background:var(--mit);}
+.itx{flex:1;font-size:0.82rem;background:transparent;border:none;color:#1a202c;font-family:inherit;min-width:0;}
+.itx:focus{outline:none;}
+.itx.sm{font-size:0.76rem;color:#6b7280;font-style:italic;}
+.itx.ct{font-size:0.76rem;color:var(--ctr);font-style:italic;}
+.isub{font-size:0.72rem;color:#6b7280;white-space:nowrap;min-width:110px;}
+.idl{
+  width:20px;height:20px;border:none;background:none;
+  color:#9ca3af;cursor:pointer;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:14px;
+}
+.idl:hover{background:#fee2e2;color:#dc2626;}
+
+/* barrier pills */
+.bar-assign{display:flex;flex-wrap:wrap;gap:5px;padding-left:16px;align-items:center;margin-top:2px;}
+.bal{font-size:0.7rem;color:#9ca3af;margin-right:2px;}
+.bpill{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:50%;
+  font-size:0.68rem;font-weight:700;cursor:pointer;
+  border:1.5px solid;transition:opacity .1s,background .1s;flex-shrink:0;
+}
+.bpill.P.off{background:transparent;color:var(--pre);border-color:var(--preD);opacity:.35;}
+.bpill.P.on {background:var(--preB);color:var(--pre);border-color:var(--pre);opacity:1;}
+.bpill.M.off{background:transparent;color:var(--mit);border-color:var(--mitD);opacity:.35;}
+.bpill.M.on {background:var(--mitB);color:var(--mit);border-color:var(--mit);opacity:1;}
+
+.addrow{display:flex;gap:6px;margin-top:10px;}
+.ainp{
+  flex:1;background:white;border:1px solid #d1d5db;border-radius:6px;
+  padding:5px 10px;font-size:0.82rem;color:#1a202c;font-family:inherit;
+}
+.ainp:focus{outline:none;border-color:#1a56db;box-shadow:0 0 0 2px rgba(26,86,219,.15);}
+.abtn{
+  background:#1a56db;color:white;border:none;border-radius:6px;
+  width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:18px;flex-shrink:0;font-weight:700;
+}
+.abtn:hover{background:#1648c0;}
+@keyframes fi{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:none}}
+
+/* ═══ REPORT TABLE ══════════════════════════════════════ */
+.report-section{margin-bottom:18px;}
+.ptog{
+  display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;user-select:none;
+}
+.rbody.hide{display:none;}
+.rtbl{width:100%;border-collapse:collapse;font-size:0.78rem;margin-top:10px;}
+.rtbl th{
+  background:#f3f4f6;text-align:left;padding:6px 10px;
+  font-size:0.7rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.4px;color:#6b7280;border:1px solid #e5e7eb;
+}
+.rtbl td{padding:6px 10px;border:1px solid #e5e7eb;vertical-align:top;line-height:1.45;}
+.rtbl tr:nth-child(even) td{background:#f9fafb;}
+.bdg{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:50%;font-size:0.7rem;font-weight:700;flex-shrink:0;
+}
+.bdg.P{background:var(--preB);color:var(--pre);border:1.5px solid var(--preD);}
+.bdg.M{background:var(--mitB);color:var(--mit);border:1.5px solid var(--mitD);}
+.stit{
+  font-size:0.78rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.4px;margin:14px 0 6px;display:flex;align-items:center;gap:5px;
+}
+.stit.p{color:var(--pre);}
+.stit.m{color:var(--mit);}
+
+/* ═══ PRINT ══════════════════════════════════════════════ */
+@media print{
+  @page{size:A3 landscape;margin:9mm 11mm;}
+  header,.tabs,.tab-content,.header-btns,#saved-badge{display:none!important;}
+  body{background:#fff;font-size:9px;}
+  .diagram-wrap{padding:0;overflow:visible;}
+  .diagram-card{border:none;padding:0;min-width:unset;border-radius:0;box-shadow:none;}
+  #bsvg{width:100%;}
+  .report-section{margin:5mm 0 0;padding:5mm 7mm;border:1px solid #bbb;border-radius:3px;break-inside:avoid;}
+  .ptog .togico{display:none;}
+  .rbody{display:block!important;}
+  .rtbl{font-size:7.5px;}
+  .rtbl th{font-size:7px;padding:2px 4px;}
+  .rtbl td{padding:2.5px 4px;}
+  .bdg{width:15px;height:15px;font-size:7px;}
+  .stit{font-size:8px;margin:6px 0 3px;}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div>
+    <h1>Análisis Bow-Tie — Riesgo y Barreras de Control</h1>
+    <p>Peligro · Causas con barreras preventivas · Evento Top · Consecuencias con barreras mitigadoras · Factores de escalamiento</p>
+  </div>
+  <div class="header-btns">
+    <span id="saved-badge">✓ Guardado</span>
+    <button class="btn btn-green" onclick="saveLocal()">💾 Guardar</button>
+    <button class="btn btn-ghost" onclick="clearLocal()">🗑 Limpiar</button>
+    <button class="btn btn-white" onclick="exportPNG()">⬇ PNG</button>
+    <button class="btn btn-ghost" onclick="window.print()">🖨 Imprimir A3</button>
+    <button class="btn btn-white" onclick="copyLink()">🔗 Compartir enlace</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- META -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Datos del análisis</div>
+      </div>
+    </div>
+    <div class="meta-grid">
+      <div class="fg"><span class="fl">Sistema / Equipo</span>
+        <input class="fi" style="min-width:200px" id="f-sys" placeholder="Ej. Compresor TC-2 — Planta Sara" oninput="renderLight()"></div>
+      <div class="fg"><span class="fl">Peligro (Hazard)</span>
+        <input class="fi" style="min-width:200px" id="f-haz" placeholder="Ej. Gas inflamable H₂S a alta presión" oninput="renderLight()"></div>
+      <div class="fg"><span class="fl">Evento Top</span>
+        <input class="fi" style="min-width:165px" id="f-ev" placeholder="Ej. Pérdida de contención" oninput="renderLight()"></div>
+      <div class="fg"><span class="fl">Elaborado por</span>
+        <input class="fi" style="min-width:120px" id="f-autor" placeholder="Nombre" oninput="renderLight()"></div>
+      <div class="fg"><span class="fl">Revisado por</span>
+        <input class="fi" style="min-width:120px" id="f-revby" placeholder="Nombre" oninput="renderLight()"></div>
+      <div class="fg"><span class="fl">Fecha</span>
+        <input class="fi" id="f-date" type="date" oninput="renderLight()"></div>
+      <div class="fg"><span class="fl">Rev.</span>
+        <input class="fi" style="min-width:70px" id="f-rev" placeholder="Rev. 0" oninput="renderLight()"></div>
+      <div class="fg"><span class="fl">Ref. documento</span>
+        <input class="fi" style="min-width:110px" id="f-ref" placeholder="BT-ENAP-001" oninput="renderLight()"></div>
+    </div>
+  </div>
+
+  <!-- DIAGRAM -->
+  <div class="diagram-wrap"><div class="diagram-card">
+    <svg id="bsvg" preserveAspectRatio="xMidYMid meet"></svg>
+  </div></div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab on"  onclick="showTab('cau')">⬡ Causas</button>
+    <button class="tab"     onclick="showTab('pre')">🛡 Barreras Preventivas (P)</button>
+    <button class="tab"     onclick="showTab('con')">⚡ Consecuencias</button>
+    <button class="tab"     onclick="showTab('mit')">🔧 Barreras Mitigadoras (M)</button>
+  </div>
+
+  <!-- TAB: CAUSAS -->
+  <div class="tab-content" id="tab-cau">
+    <div class="panels p2">
+      <div class="panel" style="grid-column:1/-1">
+        <div class="ph">
+          <span class="ptit" style="color:var(--cau)">⬡ Causas / Amenazas</span>
+          <span style="font-size:0.74rem;color:#6b7280">Activa las pastillas P para asignar barreras a cada causa</span>
+        </div>
+        <div class="pb">
+          <div class="hint">Cada causa puede tener una o más barreras preventivas. Activa las pastillas <b>P1, P2…</b> que aplican. Una misma barrera puede cubrir varias causas.</div>
+          <ul class="ilist" id="ul-cau"></ul>
+          <div class="addrow"><input class="ainp" id="ni-cau" placeholder="Nueva causa o amenaza..." onkeydown="if(event.key==='Enter')add('cau')"><button class="abtn" onclick="add('cau')">+</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: PREVENTIVAS -->
+  <div class="tab-content" id="tab-pre" style="display:none">
+    <div class="panels">
+      <div class="panel">
+        <div class="ph">
+          <span class="ptit" style="color:var(--pre)">🛡 Barreras Preventivas — P1, P2…</span>
+          <span style="font-size:0.74rem;color:#6b7280">Factor de escalamiento + control de ese factor</span>
+        </div>
+        <div class="pb">
+          <div class="hint"><b>Factor de escalamiento:</b> condición que debilita o anula la barrera.<br><b>Control del factor:</b> acción que mantiene la barrera eficaz frente a ese factor.</div>
+          <ul class="ilist" id="ul-pre"></ul>
+          <div class="addrow"><input class="ainp" id="ni-pre" placeholder="Nueva barrera preventiva..." onkeydown="if(event.key==='Enter')add('pre')"><button class="abtn" onclick="add('pre')">+</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: CONSECUENCIAS -->
+  <div class="tab-content" id="tab-con" style="display:none">
+    <div class="panels p2">
+      <div class="panel" style="grid-column:1/-1">
+        <div class="ph">
+          <span class="ptit" style="color:var(--con)">⚡ Consecuencias</span>
+          <span style="font-size:0.74rem;color:#6b7280">Activa las pastillas M para asignar barreras a cada consecuencia</span>
+        </div>
+        <div class="pb">
+          <div class="hint">Cada consecuencia puede tener una o más barreras mitigadoras. Activa las pastillas <b>M1, M2…</b> que aplican.</div>
+          <ul class="ilist" id="ul-con"></ul>
+          <div class="addrow"><input class="ainp" id="ni-con" placeholder="Nueva consecuencia..." onkeydown="if(event.key==='Enter')add('con')"><button class="abtn" onclick="add('con')">+</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: MITIGADORAS -->
+  <div class="tab-content" id="tab-mit" style="display:none">
+    <div class="panels">
+      <div class="panel">
+        <div class="ph">
+          <span class="ptit" style="color:var(--mit)">🔧 Barreras Mitigadoras — M1, M2…</span>
+          <span style="font-size:0.74rem;color:#6b7280">Factor de escalamiento + control de ese factor</span>
+        </div>
+        <div class="pb">
+          <div class="hint"><b>Factor de escalamiento:</b> condición que debilita o anula la barrera.<br><b>Control del factor:</b> acción que mantiene la barrera eficaz frente a ese factor.</div>
+          <ul class="ilist" id="ul-mit"></ul>
+          <div class="addrow"><input class="ainp" id="ni-mit" placeholder="Nueva barrera mitigadora..." onkeydown="if(event.key==='Enter')add('mit')"><button class="abtn" onclick="add('mit')">+</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORT -->
+  <div class="card report-section" id="prpt">
+    <div class="ptog card-header" onclick="togRpt()" style="margin-bottom:0;padding-bottom:0;border-bottom:none;cursor:pointer;">
+      <div class="card-title">📋 Tabla de referencia — barreras, factores de escalamiento y controles</div>
+      <button class="btn btn-sm" style="background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;" id="togico">▼ mostrar</button>
+    </div>
+    <div class="rbody hide" id="rbody"><div id="rcont" style="margin-top:14px;"></div></div>
+  </div>
+
+</main>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════════ */
+let S = {
+  cau:[
+    {label:'Falla de lubricación',              bars:[0,1]},
+    {label:'Vibración excesiva',                 bars:[0,2]},
+    {label:'Desgaste prematuro de componentes',  bars:[1,2]},
+  ],
+  pre:[
+    {label:'Monitoreo de temperatura (CbM)',  escal:'Sensor descalibrado o fuera de servicio',      ctrl:'Verificación semestral calibración sensor (IK17 SAP)'},
+    {label:'Inspección periódica de sellos',  escal:'Plan de inspección no cumplido (backlog OTs)', ctrl:'Seguimiento OTs SAP PM — alarma de vencimiento'},
+    {label:'Análisis de aceite lubricante',   escal:'Frecuencia de muestreo insuficiente',          ctrl:'Programa CbM mensual con laboratorio externo'},
+  ],
+  con:[
+    {label:'Parada no planificada de planta', bars:[0,1]},
+    {label:'Derrame de hidrocarburo',         bars:[1,2]},
+    {label:'Daño estructural al equipo',      bars:[0,2]},
+  ],
+  mit:[
+    {label:'Procedimiento de emergencia (ERP)',  escal:'Personal no capacitado / ERP desactualizado', ctrl:'Simulacro anual documentado + revisión ERP cada 2 años'},
+    {label:'Sistema de detección de gas (ATEX)', escal:'Detector fuera de rango de calibración',       ctrl:'Calibración trimestral certificada con patrón NIST'},
+    {label:'Plan de contención de derrames',     escal:'Kit de contención sin mantenimiento',           ctrl:'Inspección mensual kit + reposición inmediata de insumos'},
+  ],
+};
+
+/* ════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════ */
+(function init(){
+  if(location.hash.startsWith('#d=')){
+    try{
+      const d=JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(3)))));
+      applyData(d); return;
+    }catch(e){}
+  }
+  try{
+    const saved=localStorage.getItem('bowtie_v3');
+    if(saved){ applyData(JSON.parse(saved)); return; }
+  }catch(e){}
+  applyDefaults();
+})();
+
+function applyData(d){
+  const flds={sys:'f-sys',haz:'f-haz',ev:'f-ev',autor:'f-autor',revby:'f-revby',date:'f-date',rev:'f-rev',ref:'f-ref'};
+  Object.entries(flds).forEach(([k,id])=>{ if(d[k]) g(id).value=d[k]; });
+  if(d.S) S=d.S;
+}
+function applyDefaults(){
+  g('f-date').value = new Date().toISOString().split('T')[0];
+  g('f-ev').value   = 'Falla de sello mecánico del compresor';
+  g('f-haz').value  = 'Gas inflamable / H₂S a alta presión en compresor';
+  g('f-sys').value  = 'Compresor Centrífugo TC-2 — Planta Sara';
+  g('f-rev').value  = 'Rev. 0';
+  g('f-ref').value  = 'BT-ENAP-001';
+}
+function g(id){return document.getElementById(id);}
+function v(id){return g(id).value||'';}
+
+/* ════ SAVE / LOAD ════════════════════════════════════ */
+function saveLocal(){
+  try{
+    localStorage.setItem('bowtie_v3',JSON.stringify(buildData()));
+    const b=g('saved-badge');
+    b.classList.add('show');
+    setTimeout(()=>b.classList.remove('show'),2500);
+  }catch(e){ alert('Error al guardar: '+e.message); }
+}
+function clearLocal(){
+  if(!confirm('¿Borrar datos guardados y restablecer el ejemplo?')) return;
+  localStorage.removeItem('bowtie_v3');
+  location.hash='';
+  S={
+    cau:[{label:'Nueva causa',bars:[]}],
+    pre:[{label:'Nueva barrera preventiva',escal:'',ctrl:''}],
+    con:[{label:'Nueva consecuencia',bars:[]}],
+    mit:[{label:'Nueva barrera mitigadora',escal:'',ctrl:''}],
+  };
+  ['f-sys','f-haz','f-ev','f-autor','f-revby','f-rev','f-ref'].forEach(id=>g(id).value='');
+  g('f-date').value=new Date().toISOString().split('T')[0];
+  renderAll();
+}
+function buildData(){
+  return {sys:v('f-sys'),haz:v('f-haz'),ev:v('f-ev'),autor:v('f-autor'),revby:v('f-revby'),
+    date:v('f-date'),rev:v('f-rev'),ref:v('f-ref'),S};
+}
+
+/* ════ SHARE LINK ════════════════════════════════════ */
+function copyLink(){
+  const enc=btoa(unescape(encodeURIComponent(JSON.stringify(buildData()))));
+  const url=location.href.split('#')[0]+'#d='+enc;
+  navigator.clipboard.writeText(url).then(()=>{
+    const btn=document.querySelector('.btn-white[onclick="copyLink()"]');
+    if(btn){btn.textContent='✓ ¡Copiado!';setTimeout(()=>btn.innerHTML='🔗 Compartir enlace',2200);}
+  });
+}
+
+/* ════ TABS ══════════════════════════════════════════ */
+const TABS=['cau','pre','con','mit'];
+function showTab(name){
+  TABS.forEach((t,i)=>{
+    g('tab-'+t).style.display=t===name?'block':'none';
+    document.querySelectorAll('.tab')[i].classList.toggle('on',t===name);
+  });
+}
+
+/* ════ REPORT TOGGLE ═════════════════════════════════ */
+let rOpen=false;
+function togRpt(){
+  rOpen=!rOpen;
+  g('rbody').classList.toggle('hide',!rOpen);
+  g('togico').textContent=rOpen?'▲ ocultar':'▼ mostrar';
+}
+
+/* ════ ESCAPE ════════════════════════════════════════ */
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escS(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ════ ADD / DELETE ══════════════════════════════════ */
+function add(type){
+  const inp=g('ni-'+type);
+  const val=inp.value.trim(); if(!val)return;
+  if(type==='pre'||type==='mit') S[type].push({label:val,escal:'',ctrl:''});
+  else S[type].push({label:val,bars:[]});
+  inp.value=''; renderAll();
+}
+function del(type,i){
+  if(type==='pre') S.cau.forEach(c=>{c.bars=c.bars.filter(b=>b!==i).map(b=>b>i?b-1:b);});
+  if(type==='mit') S.con.forEach(c=>{c.bars=c.bars.filter(b=>b!==i).map(b=>b>i?b-1:b);});
+  S[type].splice(i,1); renderAll();
+}
+function toggleBar(side,ii,bi){
+  const arr=side==='cau'?S.cau:S.con;
+  const item=arr[ii];
+  const pos=item.bars.indexOf(bi);
+  if(pos>=0) item.bars.splice(pos,1); else item.bars.push(bi);
+  item.bars.sort((a,b)=>a-b);
+  renderAll();
+}
+
+/* ════════════════════════════════════════════════════
+   RENDER LISTS
+════════════════════════════════════════════════════ */
+function renderAll(){ renderLists(); renderSVG(); renderReport(); }
+function renderLight(){ renderSVG(); renderReport(); }
+
+function renderLists(){
+  // CAUSES
+  const uc=g('ul-cau'); uc.innerHTML='';
+  S.cau.forEach((item,i)=>{
+    const li=document.createElement('li'); li.className='irow';
+    let ph=S.pre.length
+      ? S.pre.map((_,pi)=>`<button class="bpill P ${item.bars.includes(pi)?'on':'off'}" onclick="toggleBar('cau',${i},${pi})">P${pi+1}</button>`).join('')
+      : '<span style="font-size:0.72rem;color:#9ca3af">— define barreras en pestaña P</span>';
+    li.innerHTML=`<div class="irm"><div class="itag itg-c"></div>
+      <input class="itx" value="${esc(item.label)}" oninput="S.cau[${i}].label=this.value;renderLight()">
+      <button class="idl" onclick="del('cau',${i})">×</button></div>
+      <div class="bar-assign"><span class="bal">Barreras P:</span>${ph}</div>`;
+    uc.appendChild(li);
+  });
+
+  // PREVENTIVE
+  const up=g('ul-pre'); up.innerHTML='';
+  S.pre.forEach((bar,i)=>{
+    const li=document.createElement('li'); li.className='irow';
+    li.innerHTML=`<div class="irm"><div class="itag itg-p"></div>
+      <b style="font-size:0.78rem;color:var(--pre);min-width:28px">P${i+1}</b>
+      <input class="itx" value="${esc(bar.label)}" oninput="S.pre[${i}].label=this.value;renderLight()" placeholder="Descripción de la barrera">
+      <button class="idl" onclick="del('pre',${i})">×</button></div>
+    <div class="irs"><span class="isub">⚡ Factor escal.:</span>
+      <input class="itx sm" value="${esc(bar.escal)}" oninput="S.pre[${i}].escal=this.value;renderLight()" placeholder="¿Qué puede hacer fallar esta barrera?"></div>
+    <div class="irs"><span class="isub">✅ Control factor:</span>
+      <input class="itx ct" value="${esc(bar.ctrl)}"  oninput="S.pre[${i}].ctrl=this.value;renderLight()"  placeholder="¿Cómo se controla ese factor de escalamiento?"></div>`;
+    up.appendChild(li);
+  });
+
+  // CONSEQUENCES
+  const uq=g('ul-con'); uq.innerHTML='';
+  S.con.forEach((item,i)=>{
+    const li=document.createElement('li'); li.className='irow';
+    let ph=S.mit.length
+      ? S.mit.map((_,mi)=>`<button class="bpill M ${item.bars.includes(mi)?'on':'off'}" onclick="toggleBar('con',${i},${mi})">M${mi+1}</button>`).join('')
+      : '<span style="font-size:0.72rem;color:#9ca3af">— define barreras en pestaña M</span>';
+    li.innerHTML=`<div class="irm"><div class="itag itg-q"></div>
+      <input class="itx" value="${esc(item.label)}" oninput="S.con[${i}].label=this.value;renderLight()">
+      <button class="idl" onclick="del('con',${i})">×</button></div>
+      <div class="bar-assign"><span class="bal">Barreras M:</span>${ph}</div>`;
+    uq.appendChild(li);
+  });
+
+  // MITIGATION
+  const um=g('ul-mit'); um.innerHTML='';
+  S.mit.forEach((bar,i)=>{
+    const li=document.createElement('li'); li.className='irow';
+    li.innerHTML=`<div class="irm"><div class="itag itg-m"></div>
+      <b style="font-size:0.78rem;color:var(--mit);min-width:28px">M${i+1}</b>
+      <input class="itx" value="${esc(bar.label)}" oninput="S.mit[${i}].label=this.value;renderLight()" placeholder="Descripción de la barrera">
+      <button class="idl" onclick="del('mit',${i})">×</button></div>
+    <div class="irs"><span class="isub">⚡ Factor escal.:</span>
+      <input class="itx sm" value="${esc(bar.escal)}" oninput="S.mit[${i}].escal=this.value;renderLight()" placeholder="¿Qué puede hacer fallar esta barrera?"></div>
+    <div class="irs"><span class="isub">✅ Control factor:</span>
+      <input class="itx ct" value="${esc(bar.ctrl)}"  oninput="S.mit[${i}].ctrl=this.value;renderLight()"  placeholder="¿Cómo se controla ese factor de escalamiento?"></div>`;
+    um.appendChild(li);
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   SVG RENDER
+════════════════════════════════════════════════════ */
+function renderSVG(){
+  const svg=g('bsvg');
+  const C={
+    bg:'#ffffff',bd:'#e5e7eb',tx:'#1a202c',mu:'#6b7280',
+    haz:'#7a3a0e',hazB:'#fff3e8',hazD:'#d4904a',
+    cau:'#3d2474',cauB:'#ede8ff',cauD:'#a898d8',
+    ev:'#7a2020', evB:'#fceaea', evD:'#cc8080',
+    pre:'#145a34',preB:'#e6f5ed',preD:'#5aaa7a',
+    mit:'#6a4408',mitB:'#fdf4e0',mitD:'#c8a040',
+    con:'#14407a',conB:'#e4eff8',conD:'#68a0d0',
+    ln:'#d1d5db',
+    hdrBg:'rgba(26,86,219,0.04)',
+    hdrTx:'#1a56db',
+  };
+
+  const W = 1240;
+  const PAD_TOP = 50, PAD_BOT = 32, NODE_V_GAP = 18;
+  const NODE_H  = 40;
+  const ROW_H   = NODE_H + NODE_V_GAP;
+
+  const nC = Math.max(S.cau.length,1);
+  const nQ = Math.max(S.con.length,1);
+  const sideRows = Math.max(nC, nQ);
+  const H = Math.max(480, PAD_TOP + sideRows * ROW_H + PAD_BOT + 40);
+  const cy = H / 2;
+
+  const HAZ_W=140, HAZ_H=70;
+  const HAZ_X=6,   HAZ_Y=cy-HAZ_H/2;
+
+  const EV_W=128, EV_H=98;
+  const cx=W/2,   EV_X=cx-EV_W/2, EV_Y=cy-EV_H/2;
+
+  const GAP_TRI = 44;
+  const L_BASE = EV_X - GAP_TRI;
+  const R_BASE = EV_X + EV_W + GAP_TRI;
+  const L_TIP  = HAZ_X + HAZ_W + 8;
+  const R_TIP  = W - 8;
+
+  const TRI_HALF = Math.min(H/2 - PAD_TOP - 10, 165);
+  const TRI_TOP  = cy - TRI_HALF;
+  const TRI_BOT  = cy + TRI_HALF;
+
+  const CAU_W=148, CAU_X=L_TIP+8;
+  const CON_W=148, CON_X=R_TIP-CON_W-8;
+
+  const cStep = nC>1 ? Math.min((TRI_HALF*2-20)/(nC-1), ROW_H) : 0;
+  const qStep = nQ>1 ? Math.min((TRI_HALF*2-20)/(nQ-1), ROW_H) : 0;
+  const cY0   = cy - (nC-1)*cStep/2;
+  const qY0   = cy - (nQ-1)*qStep/2;
+
+  const BAR_R = 10;
+
+  function triIntercept(ny, side){
+    if(side==='L') return {x:L_BASE, y:Math.max(TRI_TOP,Math.min(TRI_BOT,ny))};
+    else           return {x:R_BASE, y:Math.max(TRI_TOP,Math.min(TRI_BOT,ny))};
+  }
+
+  const p=[];
+
+  p.push(`<rect width="${W}" height="${H}" fill="${C.bg}" rx="0"/>`);
+
+  p.push(`<defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="${C.haz}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>`);
+
+  /* Header strip */
+  p.push(`<rect x="0" y="0" width="${W}" height="26" fill="${C.hdrBg}"/>`);
+  p.push(T(10,17,9.5,C.hdrTx,v('f-sys'),'start','700'));
+  p.push(T(W-8,17,9.5,C.mu,[v('f-ref'),v('f-rev'),v('f-date')].filter(Boolean).join('  ·  '),'end','400'));
+  p.push(T(cx,38,11,C.hdrTx,'DIAGRAMA BOW-TIE — ANÁLISIS DE RIESGOS Y BARRERAS DE CONTROL','middle','700','letter-spacing="0.6"'));
+
+  /* Triangles */
+  p.push(`<polygon points="${L_BASE},${TRI_TOP} ${L_BASE},${TRI_BOT} ${L_TIP},${cy}"
+    fill="rgba(100,70,180,0.04)" stroke="${C.cauD}" stroke-width="1.2"/>`);
+  p.push(`<polygon points="${R_BASE},${TRI_TOP} ${R_BASE},${TRI_BOT} ${R_TIP},${cy}"
+    fill="rgba(30,80,160,0.04)" stroke="${C.conD}" stroke-width="1.2"/>`);
+
+  /* Hazard box */
+  p.push(RX(HAZ_X,HAZ_Y,HAZ_W,HAZ_H,8,C.hazB,C.hazD,1.8));
+  p.push(T(HAZ_X+HAZ_W/2,HAZ_Y+13,8,C.haz,'PELIGRO (HAZARD)','middle','700','letter-spacing="0.5"'));
+  wrapN(v('f-haz'),17).slice(0,4).forEach((l,j)=>
+    p.push(T(HAZ_X+HAZ_W/2,HAZ_Y+26+j*13,10.5,C.haz,l,'middle','500')));
+  p.push(`<line x1="${HAZ_X+HAZ_W}" y1="${cy}" x2="${L_TIP-1}" y2="${cy}"
+    stroke="${C.haz}" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#ah)"/>`);
+
+  /* Causes */
+  S.cau.forEach((item,i)=>{
+    const ny = cY0 + i*cStep;
+    const lns = wrapN(item.label,18);
+    const bH  = Math.max(40, lns.length*13+12);
+
+    const {x:ix, y:iy} = triIntercept(ny,'L');
+    const x0=CAU_X+CAU_W, y0=ny;
+    const x1=ix, y1=iy;
+    const dx=x1-x0, dy=y1-y0, dist=Math.sqrt(dx*dx+dy*dy);
+    const nB=item.bars.length;
+
+    p.push(`<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="${C.ln}" stroke-width="1.2"/>`);
+
+    item.bars.forEach((bi,k)=>{
+      const PAD=16;
+      const t = nB===1 ? 0.5 : PAD/dist + k*(dist-2*PAD)/(dist*(nB-1));
+      const cx2=x0+t*dx, cy2=y0+t*dy;
+      p.push(`<circle cx="${cx2.toFixed(1)}" cy="${cy2.toFixed(1)}" r="${BAR_R+3}" fill="${C.bg}"/>`);
+      p.push(`<circle cx="${cx2.toFixed(1)}" cy="${cy2.toFixed(1)}" r="${BAR_R}" fill="${C.preB}" stroke="${C.pre}" stroke-width="1.8"/>`);
+      p.push(T(cx2,cy2+3.5,7.5,C.pre,`P${bi+1}`,'middle','700'));
+    });
+
+    p.push(RX(CAU_X,ny-bH/2,CAU_W,bH,6,C.cauB,C.cauD,1.2));
+    lns.forEach((l,j)=>p.push(T(CAU_X+CAU_W/2,ny-(lns.length*13)/2+10+j*13,10.5,C.cau,l,'middle','500')));
+  });
+
+  /* Event box */
+  p.push(RX(EV_X,EV_Y,EV_W,EV_H,10,C.evB,C.evD,2.4));
+  p.push(T(cx,EV_Y+17,15,C.ev,'⚠️','middle','400'));
+  wrapN(v('f-ev'),14).slice(0,4).forEach((l,j)=>
+    p.push(T(cx,EV_Y+33+j*13,10.5,C.ev,l,'middle','600')));
+  p.push(T(cx,EV_Y+EV_H+15,8.5,C.mu,'EVENTO TOP','middle','700','letter-spacing=".8"'));
+
+  /* Consequences */
+  S.con.forEach((item,i)=>{
+    const ny = qY0 + i*qStep;
+    const lns = wrapN(item.label,18);
+    const bH  = Math.max(40, lns.length*13+12);
+
+    const {x:ix, y:iy} = triIntercept(ny,'R');
+    const x0=ix, y0=iy;
+    const x1=CON_X, y1=ny;
+    const dx=x1-x0, dy=y1-y0, dist=Math.sqrt(dx*dx+dy*dy);
+    const nB=item.bars.length;
+
+    p.push(`<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="${C.ln}" stroke-width="1.2"/>`);
+
+    item.bars.forEach((bi,k)=>{
+      const PAD=16;
+      const t = nB===1 ? 0.5 : PAD/dist + k*(dist-2*PAD)/(dist*(nB-1));
+      const cx2=x0+t*dx, cy2=y0+t*dy;
+      p.push(`<circle cx="${cx2.toFixed(1)}" cy="${cy2.toFixed(1)}" r="${BAR_R+3}" fill="${C.bg}"/>`);
+      p.push(`<circle cx="${cx2.toFixed(1)}" cy="${cy2.toFixed(1)}" r="${BAR_R}" fill="${C.mitB}" stroke="${C.mit}" stroke-width="1.8"/>`);
+      p.push(T(cx2,cy2+3.5,7.5,C.mit,`M${bi+1}`,'middle','700'));
+    });
+
+    p.push(RX(CON_X,ny-bH/2,CON_W,bH,6,C.conB,C.conD,1.2));
+    lns.forEach((l,j)=>p.push(T(CON_X+CON_W/2,ny-(lns.length*13)/2+10+j*13,10.5,C.con,l,'middle','500')));
+  });
+
+  /* Legend */
+  const leg=[
+    {type:'rect', c:C.haz, l:'Peligro (Hazard)'},
+    {type:'rect', c:C.cau, l:'Causa / Amenaza'},
+    {type:'circ', c:C.pre, cb:C.preB, l:'Barrera prev. (Pn)'},
+    {type:'rect', c:C.ev,  l:'Evento Top'},
+    {type:'circ', c:C.mit, cb:C.mitB, l:'Barrera mitig. (Mn)'},
+    {type:'rect', c:C.con, l:'Consecuencia'},
+  ];
+  const lY=H-16, lstep=W/(leg.length+1);
+  leg.forEach((l,i)=>{
+    const lx=lstep*(i+1)-44;
+    if(l.type==='circ'){
+      p.push(`<circle cx="${lx+5}" cy="${lY-3}" r="7" fill="${l.cb}" stroke="${l.c}" stroke-width="1.5"/>`);
+      const lbl=i===2?'Pn':'Mn';
+      p.push(T(lx+5,lY-3+3.5,6.5,l.c,lbl,'middle','700'));
+    } else {
+      p.push(`<rect x="${lx}" y="${lY-8}" width="10" height="10" rx="3" fill="${l.c}" opacity=".85"/>`);
+    }
+    p.push(T(lx+15,lY,8.5,C.mu,l.l,'start','400'));
+  });
+
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML=p.join('\n');
+}
+
+/* ════════════════════════════════════════════════════
+   REPORT TABLE
+════════════════════════════════════════════════════ */
+function renderReport(){
+  const sys=v('f-sys'),haz=v('f-haz'),ev=v('f-ev');
+  const autor=v('f-autor'),revby=v('f-revby'),date=v('f-date'),rev=v('f-rev'),ref=v('f-ref');
+
+  let h=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;font-size:0.8rem;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #e5e7eb">
+    <div><b>Sistema / Equipo:</b> ${esc(sys)}</div>
+    <div><b>Elaborado por:</b> ${esc(autor)}</div>
+    <div><b>Peligro (Hazard):</b> ${esc(haz)}</div>
+    <div><b>Revisado por:</b> ${esc(revby)}</div>
+    <div><b>Evento Top:</b> ${esc(ev)}</div>
+    <div><b>Fecha:</b> ${esc(date)} &nbsp; <b>${esc(rev)}</b> &nbsp; <b>Ref.:</b> ${esc(ref)}</div>
+  </div>`;
+
+  h+=`<div class="stit p">🛡 Barreras Preventivas</div>
+  <table class="rtbl"><thead><tr>
+    <th style="width:30px">#</th>
+    <th style="width:20%">Barrera Preventiva</th>
+    <th style="width:20%">Causas que controla</th>
+    <th style="width:25%">Factor de Escalamiento</th>
+    <th>Control del Factor</th>
+    <th style="width:90px">Responsable</th>
+    <th style="width:55px">Estado</th>
+  </tr></thead><tbody>`;
+  S.pre.forEach((bar,i)=>{
+    const uses=S.cau.filter(c=>c.bars.includes(i));
+    h+=`<tr>
+      <td style="text-align:center"><span class="bdg P">P${i+1}</span></td>
+      <td style="font-weight:600">${esc(bar.label)}</td>
+      <td style="font-size:0.72rem;color:#555">${uses.map(c=>`<div>• ${esc(c.label)}</div>`).join('')||'<span style="color:#aaa">—</span>'}</td>
+      <td style="color:#7a3a0e">${esc(bar.escal)||'<span style="color:#bbb">—</span>'}</td>
+      <td style="color:#1a4a1a">${esc(bar.ctrl)||'<span style="color:#bbb">—</span>'}</td>
+      <td></td><td style="text-align:center">☐</td>
+    </tr>`;
+  });
+  h+=`</tbody></table>`;
+
+  h+=`<div class="stit m" style="margin-top:14px">🔧 Barreras Mitigadoras</div>
+  <table class="rtbl"><thead><tr>
+    <th style="width:30px">#</th>
+    <th style="width:20%">Barrera Mitigadora</th>
+    <th style="width:20%">Consecuencias que controla</th>
+    <th style="width:25%">Factor de Escalamiento</th>
+    <th>Control del Factor</th>
+    <th style="width:90px">Responsable</th>
+    <th style="width:55px">Estado</th>
+  </tr></thead><tbody>`;
+  S.mit.forEach((bar,i)=>{
+    const uses=S.con.filter(c=>c.bars.includes(i));
+    h+=`<tr>
+      <td style="text-align:center"><span class="bdg M">M${i+1}</span></td>
+      <td style="font-weight:600">${esc(bar.label)}</td>
+      <td style="font-size:0.72rem;color:#555">${uses.map(c=>`<div>• ${esc(c.label)}</div>`).join('')||'<span style="color:#aaa">—</span>'}</td>
+      <td style="color:#7a3a0e">${esc(bar.escal)||'<span style="color:#bbb">—</span>'}</td>
+      <td style="color:#1a4a1a">${esc(bar.ctrl)||'<span style="color:#bbb">—</span>'}</td>
+      <td></td><td style="text-align:center">☐</td>
+    </tr>`;
+  });
+  h+=`</tbody></table>`;
+
+  h+=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;margin-top:16px;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;font-size:0.78rem">
+    ${['Elaborado por','Revisado por','Aprobado por'].map((lbl,i)=>`
+    <div style="padding:8px 12px${i<2?';border-right:1px solid #e5e7eb':''}">
+      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6b7280;margin-bottom:16px">${lbl}</div>
+      <div style="font-weight:600">${i===0?esc(autor):i===1?esc(revby):'&nbsp;'}</div>
+      <div style="border-top:1px solid #e5e7eb;margin-top:8px;padding-top:4px;color:#9ca3af;font-size:0.72rem">Firma / Fecha</div>
+    </div>`).join('')}
+  </div>`;
+
+  g('rcont').innerHTML=h;
+}
+
+/* ════ SVG HELPERS ═══════════════════════════════════ */
+function T(x,y,fs,fill,text,anchor,weight,extra=''){
+  return `<text x="${typeof x==='number'?x.toFixed(1):x}" y="${typeof y==='number'?y.toFixed(1):y}" text-anchor="${anchor}" font-size="${fs}" fill="${fill}" font-weight="${weight}" font-family="'Segoe UI',system-ui,sans-serif" ${extra}>${escS(text)}</text>`;
+}
+function RX(x,y,w,h,rx,fill,stroke,sw){
+  return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+}
+function wrapN(text,maxCh){
+  if(!text)return[''];
+  const words=String(text).split(' '),lines=[];let cur='';
+  for(const w of words){
+    if((cur+' '+w).trim().length>maxCh){if(cur)lines.push(cur.trim());cur=w;}
+    else cur=(cur+' '+w).trim();
+  }
+  if(cur)lines.push(cur.trim());
+  return lines.length?lines:[''];
+}
+
+/* ════ EXPORT PNG ════════════════════════════════════ */
+function exportPNG(){
+  const el=g('bsvg');
+  const vb=el.getAttribute('viewBox').split(' ').map(Number);
+  const W2=2480, H2=Math.round(W2*(vb[3]/vb[2]));
+  const data=new XMLSerializer().serializeToString(el);
+  const canvas=document.createElement('canvas');
+  canvas.width=W2; canvas.height=H2;
+  const ctx=canvas.getContext('2d');
+  const img=new Image();
+  const url=URL.createObjectURL(new Blob([data],{type:'image/svg+xml;charset=utf-8'}));
+  img.onload=()=>{
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W2,H2);
+    ctx.drawImage(img,0,0,W2,H2);
+    const a=document.createElement('a');
+    a.download='bowtie_riesgo.png'; a.href=canvas.toDataURL('image/png'); a.click();
+    URL.revokeObjectURL(url);
+  };img.src=url;
+}
+
+renderAll();
+</script>
+</body>
+</html>
